@@ -2,6 +2,7 @@ const express = require("express");
 const multer = require("multer");
 // const noteModel = require("./models/note.models.js")
 const postModel = require("./models/post.model.js")
+const uploadfile = require("./services/storage.service.js")
 
 const app = express();
 
@@ -101,11 +102,42 @@ app.patch('/notes/:id', async (req, res) => {
 const upload = multer({ storage: multer.memoryStorage() })
 
 app.post("/create-post", upload.single("image"), async (req, res) => {
-    console.log(req.body)
-    console.log(req.file)
-    res.status(200).json({
-        message: "post created successfully",
-    })
+    try {
+        console.log("file received", req.file)
+
+        if (!req.file) {
+            return res.status(400).json({
+                message: "File not foounnddeddd"
+            })
+        }
+
+        const result = await uploadfile(req.file.buffer)
+
+        const post = await postModel.create({
+            image: result.url,
+            caption: req.body.caption
+        })
+        res.status(201).json({
+            message: "Post Created Successfully",
+            post: post
+        })
+    }
+    catch (error) {
+        console.log("Error", error)
+        res.status(500).json({
+            message: "Upload Failed",
+            error: error.message
+        })
+    }
+})
+
+app.get("/post", async(req,res)=>{
+    //  const upladedpost=await postModel.findOne({_id:req.params.id});
+     const upladedpost=await postModel.find();
+     res.status(200).json({
+        message:"Post fetched",
+        uplodedpost:upladedpost
+     })
 })
 
 module.exports = app;
